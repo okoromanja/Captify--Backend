@@ -1,3 +1,4 @@
+
 require("dotenv").config()
 const express = require("express");
 const http = require("http");
@@ -219,6 +220,4 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://captify-93701-default-rtdb.firebaseio.com"
 });
-
-
 

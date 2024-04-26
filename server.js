@@ -1,98 +1,67 @@
 require("dotenv").config()
 const express = require("express");
 const http = require("http");
-const path = require("path");
-const { AssemblyAI } = require("assemblyai");
-const WebSocket = require("ws");
+const axios = require('axios');
 const admin = require("firebase-admin");
 const bodyParser = require("body-parser");
 const cors = require("cors")
 const moment = require("moment");
 const serviceAccount = require("./serviceAccountKey.json");
 const { assert } = require("console");
+const fs = require('fs');
+const pdf = require('pdf-parse');
+const multer = require('multer');
+const saveTranscript = require("./routes/route")
+const connectToMongo = require('./db')
+
+const fetch = require('node-fetch');
 
 
 // ///////////////////////////////////////////////////////////////////////////////////////
 
-const aai = new AssemblyAI({ apiKey: "ce2c1d53c1af4f02a15b539ffd7bc68c" });
+
 const app = express();
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+
 
 app.use(express.static("public"));
-app.use(
-  "/assemblyai.js",
-  express.static(
-    path.join(__dirname, "node_modules/assemblyai/dist/assemblyai.umd.js"),
-  ),
-);
+
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(
   cors({
-    origin: "http://localhost:5173"
+    origin: `${process.env.HOST_URL}`
   })
 )
+app.use('/api/save', require("./routes/route"))
+app.use('/sync', require("./routes/syncRoutes"))
 
-app.get("/token", async (_req, res) => {
-  const token = await aai.realtime.createTemporaryToken({ expires_in: 3600 });
-  res.json({ token });
+
+const upload = multer({ dest: 'uploads/' });
+
+app.get('/token', async (req, res) => {
+  try {
+    const response = await axios.post('https://api.assemblyai.com/v2/realtime/token',
+      { expires_in: 3600 },
+      { headers: { authorization: `${process.env.AAI_KEY}` } });
+    const { data } = response;
+    res.json(data);
+  } catch (error) {
+    const { response: { status, data } } = error;
+    res.status(status).json(data);
+  }
 });
 
 
-wss.on("connection", (ws) => {
-  let rt;
+connectToMongo()
 
-  ws.on("message", async (message) => {
-    const data = JSON.parse(message);
 
-    if (data.type === "start") {
-      const response = await fetch("/token");
-      const tokenData = await response.json();
-
-      if (tokenData.error) {
-        ws.send(JSON.stringify({ type: "error", error: tokenData.error }));
-        return;
-      }
-
-      rt = new AssemblyAI.RealtimeService({ token: tokenData.token });
-
-      rt.on("transcript", (transcriptMessage) => {
-        ws.send(JSON.stringify({ type: "transcript", text: transcriptMessage.text }));
-      });
-
-      rt.on("error", async (error) => {
-        console.error(error);
-        await rt.close();
-        ws.send(JSON.stringify({ type: "error", error: "RealtimeService error" }));
-      });
-
-      rt.on("close", () => {
-        rt = null;
-      });
-
-      await rt.connect();
-    } else if (data.type === "audio") {
-      if (rt) {
-        rt.sendAudio(Buffer.from(data.audio, "base64"));
-      }
-    } else if (data.type === "stop") {
-      if (rt) {
-        await rt.close(false);
-        rt = null;
-      }
-    }
-  });
-
-  ws.on("close", () => {
-    if (rt) {
-      rt.close(false);
-    }
-  });
+app.set('port', 8000);
+const server = app.listen(app.get('port'), () => {
+  console.log(`Server is running on port ${server.address().port}`);
 });
-
 
 // //////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -101,7 +70,7 @@ app.get("/", (req, res) => {
   res.send("Hello world")
 })
 
-const [basic, pro, business] = ["price_1Ok0PQGjRSLCL52ubBnCRhLj", "price_1Ok0R5GjRSLCL52uUfuuIwMc", "price_1Ok0RuGjRSLCL52ufBxjtq1L"]
+const [basic, pro, business] = ["price_1OuZ0QGjRSLCL52upDZMDW54", "price_1OuZ4nGjRSLCL52uTnungZPz", "price_1OuZ3dGjRSLCL52u7tXx7nOG"]
 
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
 
@@ -120,8 +89,8 @@ const stripeSession = async (plan) => {
           quantity: 1
         }
       ],
-      success_url: "http://localhost:5173/success",
-      cancel_url: "http://localhost:5173/cancel"
+      success_url: `${process.env.HOST_URL}/success`,
+      cancel_url: `${process.env.HOST_URL}/cancel`
 
     })
     return session
@@ -136,12 +105,12 @@ app.post("/subscriptions", async (req, res) => {
   console.log(req.body);
   let planId = null;
 
-  if (plan == 29) {
+  if (plan === "basic") {
     planId = basic
   }
-  else if (plan == 49) {
+  else if (plan === "pro") {
     planId = pro
-  } else if (plan == 99) {
+  } else if (plan === "business") {
     planId = business
   }
 
@@ -150,14 +119,14 @@ app.post("/subscriptions", async (req, res) => {
     const user = await admin.auth().getUser(customerId);
 
     await admin.database().ref("users").child(user.uid).update({
-         subscription : {
-          sessionId: session.id
-         }
+      subscription: {
+        sessionId: session.id
+      }
 
     })
 
     console.log("session from  post request", session);
-     return res.json({session});
+    return res.json({ session });
 
   } catch (error) {
     res.send(error)
@@ -177,38 +146,70 @@ app.post("/payment-success", async (req, res) => {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status === 'paid') {
-        const subscriptionId = session.subscription;
-        try {
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          const user = await admin.auth().getUser(firebaseId);
-          const planId = subscription.plan.id;
-          const planType = subscription.plan.amount === 2900 ? "basic" : "pro";
-          const startDate = moment.unix(subscription.current_period_start).format('YYYY-MM-DD');
-          const endDate = moment.unix(subscription.current_period_end).format('YYYY-MM-DD');
-          const durationInSeconds = subscription.current_period_end - subscription.current_period_start;
-          const durationInDays = moment.duration(durationInSeconds, 'seconds').asDays();
-          await admin.database().ref("users").child(user.uid).update({ 
-              subscription: {
-                sessionId: null,
-                planId:planId,
-                planType: planType,
-                planStartDate: startDate,
-                planEndDate: endDate,
-                planDuration: durationInDays
-              }});
-
-            
-          } catch (error) {
-            console.error('Error retrieving subscription:', error);
+      const subscriptionId = session.subscription;
+      try {
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const user = await admin.auth().getUser(firebaseId);
+        const planId = subscription.plan.id;
+        console.log("required plan amount:", subscription.plan.amount)
+        const planType = subscription.plan.amount === 1000 ? "pro" : subscription.plan.amount === 2000 ? "business" : "free trial";
+        const startDate = moment.unix(subscription.current_period_start).format('YYYY-MM-DD');
+        const endDate = moment.unix(subscription.current_period_end).format('YYYY-MM-DD');
+        const durationInSeconds = subscription.current_period_end - subscription.current_period_start;
+        const durationInDays = moment.duration(durationInSeconds, 'seconds').asDays();
+        await admin.database().ref("users").child(user.uid).update({
+          subscription: {
+            sessionId: null,
+            planId: planId,
+            planType: planType,
+            planStartDate: startDate,
+            planEndDate: endDate,
+            planDuration: durationInDays
           }
-        return res.json({ message: "Payment successful" });
-      } else {
-        return res.json({ message: "Payment failed" });
+        });
+
+
+      } catch (error) {
+        console.error('Error retrieving subscription:', error);
       }
-    } catch (error) {
-      res.send(error);
+      return res.json({ message: "Payment successful" });
+    } else {
+      return res.json({ message: "Payment failed" });
     }
-  });
+  } catch (error) {
+    res.send(error);
+  }
+});
+
+app.get('/share/transcript', (req, res) => {
+  // Extract transcript text from URL query parameter
+  const transcriptText = req.query.text;
+  console.log("transcriptText for link:   ", transcriptText)
+
+  // Generate the shareable link
+  const baseUrl = 'http://localhost:8000'; // Replace with your server base URL
+  const transcriptLink = `${baseUrl}/transcript?text=${encodeURIComponent(transcriptText)}`;
+
+  // Send the link back to the client
+  res.send(transcriptLink);
+});
+
+app.get('/transcript', (req, res) => {
+  const transcriptText = req.query.text;
+
+  // Render HTML page with transcript text
+  res.send(`
+    <html>
+      <head>
+        <title>Transcript</title>
+      </head>
+      <body>
+        <h1>Transcript</h1>
+        <p>${decodeURIComponent(transcriptText)}</p>
+      </body>
+    </html>
+  `);
+});
 
 
 
@@ -221,7 +222,3 @@ admin.initializeApp({
 
 
 
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
-  console.log(`Server is running on port http://localhost:${PORT}`);
-});

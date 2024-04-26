@@ -1,3 +1,4 @@
+
 require("dotenv").config()
 const express = require("express");
 const http = require("http");
@@ -8,6 +9,13 @@ const cors = require("cors")
 const moment = require("moment");
 const serviceAccount = require("./serviceAccountKey.json");
 const { assert } = require("console");
+const fs = require('fs');
+const pdf = require('pdf-parse');
+const multer = require('multer');
+const saveTranscript = require("./routes/route")
+const connectToMongo = require('./db')
+
+const fetch = require('node-fetch');
 
 
 // ///////////////////////////////////////////////////////////////////////////////////////
@@ -25,19 +33,28 @@ app.use(
     origin: `${process.env.HOST_URL}`
   })
 )
+app.use('/api/save', require("./routes/route"))
+app.use('/sync', require("./routes/syncRoutes"))
+
+
+const upload = multer({ dest: 'uploads/' });
 
 app.get('/token', async (req, res) => {
   try {
-    const response = await axios.post('https://api.assemblyai.com/v2/realtime/token', 
-      { expires_in: 3600 }, 
-      { headers: { authorization: `${process.env.AAI_KEY}` } }); 
-    const { data } = response; 
-    res.json(data); 
+    const response = await axios.post('https://api.assemblyai.com/v2/realtime/token',
+      { expires_in: 3600 },
+      { headers: { authorization: `${process.env.AAI_KEY}` } });
+    const { data } = response;
+    res.json(data);
   } catch (error) {
-    const {response: {status, data}} = error;    
+    const { response: { status, data } } = error;
     res.status(status).json(data);
   }
 });
+
+
+connectToMongo()
+
 
 app.set('port', 8000);
 const server = app.listen(app.get('port'), () => {
@@ -73,8 +90,8 @@ const stripeSession = async (plan) => {
           quantity: 1
         }
       ],
-      success_url:  `${process.env.HOST_URL}/success`,
-      cancel_url:  `${process.env.HOST_URL}/cancel`
+      success_url: `${process.env.HOST_URL}/success`,
+      cancel_url: `${process.env.HOST_URL}/cancel`
 
     })
     return session
@@ -197,10 +214,10 @@ app.get('/transcript', (req, res) => {
 
 
 
+
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
   databaseURL: "https://captify-93701-default-rtdb.firebaseio.com"
 });
-
-
 

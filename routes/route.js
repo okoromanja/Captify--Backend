@@ -155,35 +155,5 @@ console.log(req.body)
 
 
 
-router.post('/submit-alignment-job', async (req, res) => {
-    try {
-        const requestBody = {
-            source_config: {
-                url: req.body.audioUrl
-            },
-            source_transcript_config: {
-                url: req.body.transcriptUrl
-            },
-            metaData: "This is forced alignment test"
-        };
-
-        console.log("requestBody" ,requestBody)
-
-        const response = await axios.post("https://api.rev.ai/alignment/v1/jobs", requestBody, {
-            headers: {
-                Authorization: `02rIp_IbPy99VvqGo40BhiBrUF09Fk7nSRDFbyDzQXmiISr5_JHWCWLibxutabCMLMKKyFqf6k6PckqiECo5HsYLWrCj8`,
-                "Content-Type": "application/json"
-            }
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error("Error cominggggggggggggg:", error);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-
-
-
 
 module.exports = router;

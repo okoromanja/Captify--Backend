@@ -25,18 +25,21 @@ const app = express();
 
 app.use(express.static("public"));
 
-app.use(express.json());
-app.use(bodyParser.json());
+
+app.use(bodyParser.json({ limit: '3000mb' }));
+app.use(bodyParser.urlencoded({ limit: '3000mb', extended: true, parameterLimit: 50000 }));
 app.use(
   cors({
     origin: `${process.env.HOST_URL}`
   })
 )
+
+
 app.use('/api/save', require("./routes/route"))
 app.use('/sync', require("./routes/syncRoutes"))
 
 
-const upload = multer({ dest: 'uploads/' });
+
 
 app.get('/token', async (req, res) => {
   try {

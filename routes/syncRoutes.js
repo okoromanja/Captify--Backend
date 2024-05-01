@@ -2,12 +2,15 @@ const express = require('express');
 const syncModel = require("../models/syncModel")
 const axios = require('axios');
 const router = express.Router();
+const bodyParser = require('body-parser')
 
 
 
 
-// Parse JSON request bodies
-router.use(express.json());
+
+
+router.use(bodyParser.json({ limit: '3000mb' }));
+router.use(bodyParser.urlencoded({ limit: '3000mb', extended: true }));
 
 
 // Number 1: Api To complete the firststep of revAI

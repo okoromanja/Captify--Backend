@@ -2,10 +2,12 @@ const express = require('express');
 const preAudioModel = require('../models/preAudioModel');
 const axios = require('axios');
 const router = express.Router();
+const bodyParser = require("body-parser");
 
 
-// Parse JSON request bodies
-router.use(express.json());
+
+router.use(bodyParser.json({ limit: '3000mb' }));
+router.use(bodyParser.urlencoded({ limit: '3000mb', extended: true }));
 
 
 
@@ -13,28 +15,28 @@ router.use(express.json());
 
 router.post("/savePreAudio", async (req, res) => {
     try {
-        const { transcribe, userId, filename } = req.body;
+        const { id, text, audio_url, status, audio_duration, utterances, sentimentAnalysisResults, userId, filename } = req.body;
         // Access transcriptions directly from req.body
-    
+        console.log("Request body:", id, status, audio_duration, sentimentAnalysisResults);
 
 
         // Create a new transcription document using the Mongoose model
         const transcription = new preAudioModel({
             userId: userId,
-            id: transcribe.id,
-            text: transcribe.text,
-            audio_url: transcribe.audio_url,
-            status: transcribe.status,
+            id: id,
+            text: text,
+            audio_url: audio_url,
+            status: status,
             filename: filename,
-            audio_duration: transcribe.audio_duration,
-            utterances: transcribe.utterances.map(utterance => ({
+            audio_duration: audio_duration,
+            utterances: utterances.map(utterance => ({
                 speaker: utterance.speaker,
                 text: utterance.text,
                 start: utterance.start,
                 end: utterance.end
 
             })),
-            sentimentAnalysisResults: transcribe.sentiment_analysis_results.map(result => ({
+            sentimentAnalysisResults: sentimentAnalysisResults.map(result => ({
                 text: result.text,
                 start: result.start,
                 end: result.end,
@@ -62,7 +64,7 @@ router.post("/savePreAudio", async (req, res) => {
 router.post("/fetchPreAduio", async (req, res) => {
     try {
         const { userId } = req.body;
-       
+
         // Find the document for the user
         const userDocument = await preAudioModel.find({ userId });
 
@@ -135,7 +137,7 @@ router.put("/updatePreAudio", async (req, res) => {
 router.delete("/deleteTranscription", async (req, res) => {
     try {
         const { id } = req.body;
-console.log(req.body)
+        console.log(req.body)
         userDocument = await preAudioModel.findOneAndDelete({ id })
         res.status(200).json({ message: "Transcription deleted successfully" })
     } catch (error) {

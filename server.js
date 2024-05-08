@@ -17,6 +17,11 @@ const connectToMongo = require('./db')
 const fetch = require('node-fetch');
 
 
+const WebSocket = require('ws');
+
+
+
+
 // ///////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -35,8 +40,16 @@ app.use(
 )
 
 
+app.set('port', 8000);
+const server = app.listen(app.get('port'), () => {
+  console.log(`Server is running on port ${server.address().port}`);
+});
+
+
 app.use('/api/save', require("./routes/route"))
 app.use('/sync', require("./routes/syncRoutes"))
+
+
 
 
 
@@ -58,10 +71,39 @@ app.get('/token', async (req, res) => {
 connectToMongo()
 
 
-app.set('port', 8000);
-const server = app.listen(app.get('port'), () => {
-  console.log(`Server is running on port ${server.address().port}`);
+
+
+const wss = new WebSocket.Server({ server });
+
+wss.on("connection", ()=>{
+  console.log("client connected")
+})
+
+
+// Define the webhook handler on your server
+app.post('/hook', (req, res) => {
+  try {
+    const jobDetails = req.body.job;
+    console.log("request body from webhook", jobDetails);
+
+    if (jobDetails.status === "completed") {
+      // Send notification to all connected WebSocket clients
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(jobDetails))
+        }
+      })
+
+    }
+
+    // Respond with a 200 status to acknowledge receipt of webhook
+    res.sendStatus(200);
+  } catch (error) {
+    console.log("Error while sending notification to clientside", error)
+  }
+
 });
+
 
 // //////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -76,6 +118,7 @@ app.get("/", (req, res) => {
 const [basic, pro, business] = ["price_1OuZ0QGjRSLCL52upDZMDW54", "price_1OuZ4nGjRSLCL52uTnungZPz", "price_1OuZ3dGjRSLCL52u7tXx7nOG"]
 
 const stripe = require("stripe")(process.env.STRIPE_PRIVATE_KEY);
+
 
 
 
@@ -225,3 +268,4 @@ admin.initializeApp({
 
 
 
+module.exports = server; // Export the server instance

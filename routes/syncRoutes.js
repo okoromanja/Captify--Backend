@@ -3,6 +3,12 @@ const syncModel = require("../models/syncModel")
 const axios = require('axios');
 const router = express.Router();
 const bodyParser = require('body-parser')
+const server = require('../server');
+const WebSocket = require('ws');
+const http = require("http");
+
+
+
 
 
 
@@ -11,6 +17,17 @@ const bodyParser = require('body-parser')
 
 router.use(bodyParser.json({ limit: '3000mb' }));
 router.use(bodyParser.urlencoded({ limit: '3000mb', extended: true }));
+
+
+// const Server = http.createServer(server);
+// const wss = new WebSocket.Server({ Server });
+
+// wss.on("connection", (ws)=>{
+//     console.log("Websocket connected");
+// })
+
+
+
 
 
 // Number 1: Api To complete the firststep of revAI
@@ -26,6 +43,9 @@ router.post('/submit-alignment-job', async (req, res) => {
             source_transcript_config: {
                 url: req.body.transcriptUrl,
 
+            },
+            notification_config: {
+                url: `${process.env.NGROK_URL}/hook`
             }
         };
 
@@ -38,7 +58,8 @@ router.post('/submit-alignment-job', async (req, res) => {
             {
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${process.env.REV_ACCESS_TOKEN}`
+                    Authorization: `Bearer ${process.env.REV_ACCESS_TOKEN}`,
+
                 },
 
             }
@@ -79,7 +100,8 @@ router.post('/submit-alignment-job-second', async (req, res) => {
             {
                 headers: {
 
-                    Authorization: `Bearer ${process.env.REV_ACCESS_TOKEN}`
+                    Authorization: `Bearer ${process.env.REV_ACCESS_TOKEN}`,
+                   
                 },
 
             }
@@ -117,7 +139,8 @@ router.post('/submit-alignment-job-third', async (req, res) => {
                 headers: {
 
                     Authorization: `Bearer ${process.env.REV_ACCESS_TOKEN}`,
-                    Accept: 'application/vnd.rev.transcript.v1.0+json'
+                    Accept: 'application/vnd.rev.transcript.v1.0+json',
+                   
                 },
 
             }
@@ -259,6 +282,31 @@ router.delete("/deleteTranscription", async (req, res) => {
 
 
 })
+
+
+// Number 8 : Webhook to recieve the notifications from revai about job completion
+
+
+// // Define the webhook handler on your server
+// router.post('/hook', (req, res) => {
+//     try {
+//         const jobDetails = req.body.job;
+//         console.log("request body from webhook", jobDetails);
+
+//         if (jobDetails.status === "completed") {
+//             // Send notification to all connected WebSocket clients
+
+
+//         }
+
+//         // Respond with a 200 status to acknowledge receipt of webhook
+//         res.sendStatus(200);
+//     } catch (error) {
+//         console.log("Error while sending notification to clientside", error)
+//     }
+
+// });
+
 
 
 

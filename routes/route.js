@@ -3,6 +3,9 @@ const preAudioModel = require('../models/preAudioModel');
 const axios = require('axios');
 const router = express.Router();
 const bodyParser = require("body-parser");
+const multer = require('multer');
+const ffmpeg = require('fluent-ffmpeg');
+const { PassThrough } = require('stream');
 
 
 
@@ -11,13 +14,25 @@ router.use(bodyParser.urlencoded({ limit: '3000mb', extended: true }));
 
 
 
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        return cb(null, "./")
+    },
+    filename: function (req, file, cb) {
+        return cb(null, `${Date.now()}_${file.originalname}`)
+    }
+})
+
+const upload = multer({ storage })
+
+
 // Number 1: Api To save the transcriptions of to database 
 
 router.post("/savePreAudio", async (req, res) => {
     try {
         const { id, text, audio_url, status, audio_duration, utterances, sentimentAnalysisResults, userId, filename } = req.body;
         // Access transcriptions directly from req.body
-        console.log("Request body:", id, status, audio_duration, sentimentAnalysisResults);
+
 
 
         // Create a new transcription document using the Mongoose model
@@ -113,7 +128,7 @@ router.put("/updatePreAudio", async (req, res) => {
     try {
         const { updatedSentimentAnalysisResults, id } = req.body;
 
-        console.log(updatedSentimentAnalysisResults, id)
+
 
         // Find the document with the provided id and update it
         await preAudioModel.findOneAndUpdate(
@@ -149,6 +164,45 @@ router.delete("/deleteTranscription", async (req, res) => {
 
 
 
+// Number 6: Api to convert the video files to audio files
+
+router.post('/extract-audio', upload.single('video'), (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+
+
+        console.log("req.file in extract audio", req.file)
+        // Create a readable stream from the uploaded video file data
+        const videoStream = new PassThrough();
+        videoStream.end(req.file.buffer);
+
+        // Create a writable stream to store the converted audio data
+        const audioStream = new PassThrough();
+
+        // Perform the conversion from video to audio
+        ffmpeg()
+            .input(videoStream)
+            .toFormat('mp3')
+            .on('error', (err) => {
+                console.error('Error converting video to audio:', err);
+                res.status(500).json({ error: 'Error converting video to audio' });
+            })
+            .pipe(audioStream);
+
+        // Stream the converted audio data back to the client
+        res.set({
+            'Content-Type': 'audio/mpeg',
+            'Content-Disposition': 'attachment; filename=audio.mp3'
+        });
+        audioStream.pipe(res);
+    } catch (error) {
+        console.error('Error extracting audio:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
 
 
 

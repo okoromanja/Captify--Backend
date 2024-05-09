@@ -75,7 +75,7 @@ connectToMongo()
 
 const wss = new WebSocket.Server({ server });
 
-wss.on("connection", ()=>{
+wss.on("connection", () => {
   console.log("client connected")
 })
 
@@ -86,18 +86,20 @@ app.post('/hook', (req, res) => {
     const jobDetails = req.body.job;
     console.log("request body from webhook", jobDetails);
 
-    if (jobDetails.status === "completed") {
-      // Send notification to all connected WebSocket clients
+    if (jobDetails) {
       wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(JSON.stringify(jobDetails))
-        }
-      })
 
-    }
+        client.send(JSON.stringify(jobDetails))
+
+      })
 
     // Respond with a 200 status to acknowledge receipt of webhook
     res.sendStatus(200);
+    }
+    // Send notification to all connected WebSocket clients
+
+
+
   } catch (error) {
     console.log("Error while sending notification to clientside", error)
   }

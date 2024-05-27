@@ -2,7 +2,7 @@ require("dotenv").config()
 const express = require("express");
 const http = require("http");
 const axios = require('axios');
-const admin = require("firebase-admin");
+const admin = require('./firebase');
 const bodyParser = require("body-parser");
 const cors = require("cors")
 const moment = require("moment");
@@ -48,6 +48,7 @@ const server = app.listen(app.get('port'), () => {
 
 app.use('/api/save', require("./routes/route"))
 app.use('/sync', require("./routes/syncRoutes"))
+app.use('/admin', require("./adminRoutes/auth"))
 
 
 
@@ -244,6 +245,7 @@ app.get('/share/transcript', (req, res) => {
 
 app.get('/transcript', (req, res) => {
   const transcriptText = req.query.text;
+  
 
   // Render HTML page with transcript text
   res.send(`
@@ -263,10 +265,10 @@ app.get('/transcript', (req, res) => {
 
 
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://captify-93701-default-rtdb.firebaseio.com"
-});
+// admin.initializeApp({
+//   credential: admin.credential.cert(serviceAccount),
+//   databaseURL: "https://captify-93701-default-rtdb.firebaseio.com"
+// });
 
 
 

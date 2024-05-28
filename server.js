@@ -33,11 +33,26 @@ app.use(express.static("public"));
 
 app.use(bodyParser.json({ limit: '3000mb' }));
 app.use(bodyParser.urlencoded({ limit: '3000mb', extended: true, parameterLimit: 50000 }));
-app.use(
-  cors({
-    origin: `${process.env.HOST_URL}`
-  })
-)
+
+
+const allowedOrigins = [
+  process.env.HOST_URL,  
+  process.env.HOST_URL_ADMIN   
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Check if the incoming origin is in the allowed origins list
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true  // If you need to support cookies or authorization headers
+};
+
+app.use(cors(corsOptions));
 
 
 app.set('port', 8000);

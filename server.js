@@ -64,6 +64,7 @@ const server = app.listen(app.get('port'), () => {
 app.use('/api/save', require("./routes/route"))
 app.use('/sync', require("./routes/syncRoutes"))
 app.use('/admin', require("./adminRoutes/auth"))
+app.use('/admin-payments', require("./adminRoutes/paymentHandling"))
 
 
 

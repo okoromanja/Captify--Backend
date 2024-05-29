@@ -13,6 +13,38 @@ router.use(bodyParser.urlencoded({ limit: '3000mb', extended: true }));
 
 
 
+// Endpoint for to handel admin login
+
+
+
+
+
+
+
+// router.post('/login', async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+
+//     const userRecord = await admin.auth().getUserByEmail(email);
+
+
+//     // Check if the email and password match the hardcoded admin credentials
+//     if (userRecord && email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+//       res.status(200).json({ message: 'Login successful', user: { email: ADMIN_EMAIL } });
+//     } else {
+//       res.status(401).json({ message: 'Invalid email or password' });
+//     }
+//   } catch (error) {
+//     console.log("Error in server while admin login", error);
+//     res.status(500).send("Internal server error");
+//   }
+// });
+
+
+
+
+
 // Endpoint to fetch the List of users from the database
 router.get("/totalusers", async (req, res) => {
 
@@ -81,7 +113,7 @@ router.get('/recent-users-count', async (req, res) => {
     }));
 
     const percentageLastMonth = (usersLastMonth / totalusers) * 100
-    
+
 
 
     res.status(200).json({ userCounts: userCountsArray, percentage: percentageLastMonth });
@@ -90,5 +122,7 @@ router.get('/recent-users-count', async (req, res) => {
     res.status(500).send('Internal Server Error');
   }
 });
+
+
 
 module.exports = router

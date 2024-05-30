@@ -73,6 +73,7 @@ router.get('/recent-users-count', async (req, res) => {
   try {
     const oneWeekAgo = moment().subtract(7, 'days').startOf('day').toDate();
     const oneMonthAgo = moment().subtract(1, 'month').startOf('day').toDate();
+    const twoMonthAgo = moment().subtract(2, 'month').startOf('day').toDate();
     const userCounts = {
       Sun: 0,
       Mon: 0,
@@ -86,6 +87,7 @@ router.get('/recent-users-count', async (req, res) => {
     let nextPageToken;
     let totalusers = 0;
     let usersLastMonth = 0
+   
 
 
     // Fetch users with pagination
@@ -94,9 +96,11 @@ router.get('/recent-users-count', async (req, res) => {
       listUsersResult.users.forEach(userRecord => {
         const creationTime = new Date(userRecord.metadata.creationTime);
         totalusers += 1
+
         if (creationTime >= oneMonthAgo) {
           usersLastMonth += 1
         }
+        
 
         if (creationTime >= oneWeekAgo) {
           const dayOfWeek = moment(creationTime).format('ddd');
@@ -112,7 +116,7 @@ router.get('/recent-users-count', async (req, res) => {
       users: userCounts[day]
     }));
 
-    const percentageLastMonth = (usersLastMonth / totalusers) * 100
+    const percentageLastMonth = (usersLastMonth / 100) * 100
 
 
 

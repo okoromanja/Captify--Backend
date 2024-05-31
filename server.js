@@ -181,7 +181,10 @@ app.post("/subscriptions", async (req, res) => {
 
   try {
     const session = await stripeSession(planId);
+    console.log("session from  post request", session);
     const user = await admin.auth().getUser(customerId);
+   
+
 
     await admin.database().ref("users").child(user.uid).update({
       subscription: {
@@ -190,7 +193,7 @@ app.post("/subscriptions", async (req, res) => {
 
     })
 
-    console.log("session from  post request", session);
+    
     return res.json({ session });
 
   } catch (error) {

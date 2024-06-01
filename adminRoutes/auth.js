@@ -87,7 +87,7 @@ router.get('/recent-users-count', async (req, res) => {
     let nextPageToken;
     let totalusers = 0;
     let usersLastMonth = 0
-   
+
 
 
     // Fetch users with pagination
@@ -100,7 +100,7 @@ router.get('/recent-users-count', async (req, res) => {
         if (creationTime >= oneMonthAgo) {
           usersLastMonth += 1
         }
-        
+
 
         if (creationTime >= oneWeekAgo) {
           const dayOfWeek = moment(creationTime).format('ddd');
@@ -127,6 +127,70 @@ router.get('/recent-users-count', async (req, res) => {
   }
 });
 
+
+// Endpoint to fetch the user and his subscrptions details from realtime database
+
+router.get('/fetch-user-realtime', async (req, res) => {
+
+  try {
+    const userDetailsSnapshot = await admin.database().ref("users").get()
+    const userDetails = userDetailsSnapshot.val();
+    console.log("user details from realtime datbase", userDetails)
+
+    const userDetailsArray = Object.keys(userDetails).map(key => ({
+      id: key,
+      ...userDetails[key]
+    }))
+
+
+
+    res.status(200).json({ userDetails: userDetailsArray })
+  } catch (error) {
+    console.log("Error while fetching the data from realtime firebase realtime database", error)
+  }
+
+})
+
+
+
+
+// Endpoint to create a new user from admin
+router.post('/create-user', async (req, res) => {
+  const { email, password, displayName, status } = req.body;
+
+
+
+  try {
+    // Create a new user
+    const userRecord = await admin.auth().createUser({
+      email: email,
+      password: password
+    });
+
+    // Update the user's profile to set the display name
+    await admin.auth().updateUser(userRecord.uid, {
+      displayName: displayName
+    });
+
+    // Set custom claims (including the status field)
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
+      active: status
+    })
+
+    res.status(201).send({ message: 'User created successfully', uid: userRecord.uid });
+  } catch (error) {
+    console.error('Error creating new user:', error);
+    res.status(500).send(error);
+  }
+});
+
+
+// Endpoint to update the user from admin
+router.post('/update-user', (req, res) => {
+
+  const { uid, status} = req.body;
+
+})
 
 
 module.exports = router

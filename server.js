@@ -36,8 +36,8 @@ app.use(bodyParser.urlencoded({ limit: '3000mb', extended: true, parameterLimit:
 
 
 const allowedOrigins = [
-  process.env.HOST_URL,  
-  process.env.HOST_URL_ADMIN   
+  process.env.HOST_URL,
+  process.env.HOST_URL_ADMIN
 ];
 
 const corsOptions = {
@@ -110,8 +110,8 @@ app.post('/hook', (req, res) => {
 
       })
 
-    // Respond with a 200 status to acknowledge receipt of webhook
-    res.sendStatus(200);
+      // Respond with a 200 status to acknowledge receipt of webhook
+      res.sendStatus(200);
     }
     // Send notification to all connected WebSocket clients
 
@@ -183,7 +183,7 @@ app.post("/subscriptions", async (req, res) => {
     const session = await stripeSession(planId);
     console.log("session from  post request", session);
     const user = await admin.auth().getUser(customerId);
-   
+
 
 
     await admin.database().ref("users").child(user.uid).update({
@@ -193,7 +193,7 @@ app.post("/subscriptions", async (req, res) => {
 
     })
 
-    
+
     return res.json({ session });
 
   } catch (error) {
@@ -219,6 +219,7 @@ app.post("/payment-success", async (req, res) => {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         const user = await admin.auth().getUser(firebaseId);
         const planId = subscription.plan.id;
+        const planAmount = subscription.plan.amount
         console.log("required plan amount:", subscription.plan.amount)
         const planType = subscription.plan.amount === 1000 ? "pro" : subscription.plan.amount === 2000 ? "business" : "free trial";
         const startDate = moment.unix(subscription.current_period_start).format('YYYY-MM-DD');
@@ -232,7 +233,8 @@ app.post("/payment-success", async (req, res) => {
             planType: planType,
             planStartDate: startDate,
             planEndDate: endDate,
-            planDuration: durationInDays
+            planDuration: durationInDays,
+            planPrice: planAmount/100
           }
         });
 
@@ -264,7 +266,7 @@ app.get('/share/transcript', (req, res) => {
 
 app.get('/transcript', (req, res) => {
   const transcriptText = req.query.text;
-  
+
 
   // Render HTML page with transcript text
   res.send(`

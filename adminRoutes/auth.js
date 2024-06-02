@@ -186,11 +186,107 @@ router.post('/create-user', async (req, res) => {
 
 
 // Endpoint to update the user from admin
-router.post('/update-user', (req, res) => {
+router.post('/update-user', async (req, res) => {
+  const { uid, active } = req.body;
 
-  const { uid, status} = req.body;
+  if (typeof uid !== 'string' || typeof active !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid request parameters' });
+  }
 
-})
+  try {
+    // Get the existing custom claims
+    const user = await admin.auth().getUser(uid);
+    console.log("user to update", user)
+    const currentClaims = user.customClaims || {};
+
+    // Update the custom claims with the new status
+    const updatedClaims = { ...currentClaims, active };
+
+    // Set the new custom claims
+    await admin.auth().setCustomUserClaims(uid, updatedClaims);
+
+    res.status(200).json({ message: 'User status updated successfully', forUser: user.displayName });
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+
+
+// Endpoint to ban the user
+
+router.post('/ban-user', async (req, res) => {
+  const { uid } = req.body;
+
+  if (typeof uid !== 'string') {
+    return res.status(400).json({ error: 'Invalid request parameters' });
+  }
+
+  try {
+    // Disable the user by setting the disabled property to true
+    await admin.auth().updateUser(uid, { disabled: true });
+    await admin.auth().setCustomUserClaims(uid, {
+      banned: true
+    })
+
+    res.status(200).json({ message: 'User account has been disabled successfully' });
+  } catch (error) {
+    console.error('Error disabling user account:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+
+
+// Endpoint to unban the user
+
+router.post('/unban-user', async (req, res) => {
+  const { uid } = req.body;
+
+  if (typeof uid !== 'string') {
+    return res.status(400).json({ error: 'Invalid request parameters' });
+  }
+
+  try {
+    // Disable the user by setting the disabled property to true
+    await admin.auth().updateUser(uid, { disabled: false });
+    await admin.auth().setCustomUserClaims(uid, {
+      banned: false
+    })
+
+    res.status(200).json({ message: 'User account has been disabled successfully' });
+  } catch (error) {
+    console.error('Error disabling user account:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to delete the user
+
+router.post('/delete-user', async (req, res) => {
+  const { uid } = req.body;
+
+  if (typeof uid !== 'string') {
+    return res.status(400).json({ error: 'Invalid request parameters' });
+  }
+
+  try {
+    // Disable the user by setting the disabled property to true
+    await admin.auth().deleteUser(uid)
+    
+    res.status(200).json({ message: 'User account has been deleted successfully' });
+  } catch (error) {
+    console.error('Error disabling user account:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
 
 
 module.exports = router

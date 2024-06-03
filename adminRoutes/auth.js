@@ -3,6 +3,8 @@ const router = express.Router();
 const bodyParser = require("body-parser");
 const admin = require('../firebase');
 const moment = require("moment")
+const preAudioModel = require("../models/preAudioModel")
+const syncModel = require("../models/syncModel")
 
 
 
@@ -276,10 +278,13 @@ router.post('/delete-user', async (req, res) => {
   }
 
   try {
-    // Disable the user by setting the disabled property to true
-    await admin.auth().deleteUser(uid)
-    
-    res.status(200).json({ message: 'User account has been deleted successfully' });
+
+    await admin.auth().deleteUser(uid);
+    await admin.database().ref(`/users/${uid}`).remove();
+    await preAudioModel.deleteMany({ userId: uid });
+    await syncModel.deleteMany({ userId: uid })
+
+    res.status(200).json({ message: 'User account and all its data has been deleted successfully' });
   } catch (error) {
     console.error('Error disabling user account:', error);
     res.status(500).json({ error: 'Internal server error' });

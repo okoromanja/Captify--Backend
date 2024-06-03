@@ -158,8 +158,6 @@ router.delete("/deleteTranscription", async (req, res) => {
     } catch (error) {
         console.log("Error while deleting the transcription")
     }
-
-
 })
 
 

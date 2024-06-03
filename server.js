@@ -1,22 +1,12 @@
 require("dotenv").config()
 const express = require("express");
-const http = require("http");
+
 const axios = require('axios');
 const admin = require('./firebase');
 const bodyParser = require("body-parser");
 const cors = require("cors")
 const moment = require("moment");
-const serviceAccount = require("./serviceAccountKey.json");
-const { assert } = require("console");
-const fs = require('fs');
-const pdf = require('pdf-parse');
-const multer = require('multer');
-const saveTranscript = require("./routes/route")
 const connectToMongo = require('./db')
-
-const fetch = require('node-fetch');
-
-
 const WebSocket = require('ws');
 
 

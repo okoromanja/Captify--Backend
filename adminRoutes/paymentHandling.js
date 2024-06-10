@@ -118,7 +118,7 @@ router.get('/weekly-numbers', async (req, res) => {
 
 
             const planAmount = subscription.plan.amount;
-           
+
 
             const creationTime = new Date(subscription.created * 1000);
             const dayOfWeek = moment(creationTime).format('ddd');
@@ -210,7 +210,7 @@ router.get('/products-percentage', async (req, res) => {
 
         });
 
-        
+
 
 
         // Calculate the percentage of subscriptions in the last month over the previous month
@@ -230,6 +230,8 @@ router.get('/products-percentage', async (req, res) => {
         res.status(500).send('Internal server error');
     }
 });
+
+
 
 
 

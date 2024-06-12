@@ -49,7 +49,7 @@ router.post('/create-stripe-session', async (req, res) => {
             transcriptionsSessionId: session.id,
             dataDetails: {
                 cloudUrl: cloudUrl,
-                transcriptUrl : transcriptUrl ? transcriptUrl : "noUrl",
+                transcriptUrl: transcriptUrl ? transcriptUrl : "noUrl",
                 amount: cost,
                 filename: filename,
                 fileDuration: fileDuration,
@@ -137,6 +137,67 @@ router.post('/buy-credit', async (req, res) => {
 
         // Store session ID and other details in Firebase
         await admin.database().ref(`users/${userId}/credit-payment`).update(updateData);
+
+        res.json({ url: session.url });
+    } catch (error) {
+        console.error("Error creating Stripe session", error);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+
+
+
+
+
+
+
+
+// Api to charge use for live transcript 
+
+
+
+router.post('/live-transcript-payment', async (req, res) => {
+    const { total, userId, minutes } = req.body;
+
+
+    try {
+
+
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [{
+                price_data: {
+                    currency: 'usd',
+                    product_data: {
+                        name: 'Live Transcriptions',
+                        description: `Time duration for real time transcriptions`,
+                    },
+                    unit_amount: Math.round(total * 100), // Convert to cents
+                },
+                quantity: 1,
+            }],
+
+            mode: 'payment',
+            success_url: `${process.env.HOST_URL}/live-transcript-payment-success`,
+            cancel_url: `${process.env.HOST_URL}/cancel`
+        });
+
+
+        // Prepare the data to be updated
+        const updateData = {
+            transcriptionsSessionId: session.id,
+
+            price: total,
+            minutes: minutes,
+            method: "Live Transcript Direct Pay",
+            status: "unPaid"
+
+        };
+
+
+        // Store session ID and other details in Firebase
+        await admin.database().ref(`users/${userId}/live-transcript-payment`).update(updateData);
 
         res.json({ url: session.url });
     } catch (error) {

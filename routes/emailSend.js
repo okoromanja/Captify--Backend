@@ -49,8 +49,6 @@ const sendVerificationEmail = async (email, userId) => {
 router.post('/signup', async (req, res) => {
   const { email, password, name } = req.body;
 
-  console.log("req body", req.body)
-  console.log("email, password, name", email, password, name)
 
   try {
 
@@ -115,9 +113,7 @@ router.post('/verify-email', async (req, res) => {
 router.post('/email-verify-login', async (req, res) => {
   const { email }  = req.body;
 
-  console.log("req body", req.body)
-  console.log("email", email)
-
+ 
   try {
 
     const userRecord = await admin.auth().getUserByEmail(email);

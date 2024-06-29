@@ -18,7 +18,7 @@ router.use(bodyParser.urlencoded({ limit: '3000mb', extended: true }));
 // Api to charge the user for transcriptions in direct way
 
 router.post('/create-stripe-session', async (req, res) => {
-    const { cost, cloudUrl, userId, filename, fileDuration, transcriptUrl } = req.body;
+    const { cost, cloudUrl, userId, filename, fileDuration, transcriptUrl, transcriptFileName } = req.body;
 
     console.log("is credit method  and cost:", cost)
     try {
@@ -53,6 +53,8 @@ router.post('/create-stripe-session', async (req, res) => {
                 amount: cost,
                 filename: filename,
                 fileDuration: fileDuration,
+                transcriptFileName: transcriptFileName ?  transcriptFileName : "noTranscriptFileName",
+
                 method: "Direct Payment"
             }
         };

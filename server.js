@@ -282,7 +282,3 @@ app.get('/transcript', (req, res) => {
 //   credential: admin.credential.cert(serviceAccount),
 //   databaseURL: "https://captify-93701-default-rtdb.firebaseio.com"
 // });
-
-
-
-module.exports = server; // Export the server instance
